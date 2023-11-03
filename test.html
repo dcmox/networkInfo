@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>NetworkInfo by IP and CIDR</h2>
+
+<p>Just some raw HTML/JS to play around with Subnetting logic.</p>
+
+<textarea id="demo" style="width:500px;height:400px"></textarea>
+
+<script>
+
+
+let getNetworkInfo = (ipAddress, cidr) => {
+  // make work for SMs < 25
+  let ipAddressBinary = ipAddress.split('.').map((p) => Number(p).toString(2).padStart(8, '0')).join('.');
+  let subnetMaskBinary = "".padEnd(cidr, 1).padEnd(32, 0).replace(/(.{8})/g,"$1.");
+  subnetMaskBinary = subnetMaskBinary.substring(0, subnetMaskBinary.length -1);
+  let subnetMaskBinaryParts = subnetMaskBinary.split(".");
+  let netIdBinary = ipAddressBinary.split('.').map((ip, i) => {
+    // Logical AND - compare IP and subnet mask binary to form the Network ID bin
+    let netIdBin = '';
+    for(let j = 0; j < 8; j++){
+      if(ip.charAt(j) === '1' && subnetMaskBinaryParts[i].charAt(j) === '1'){
+        netIdBin += "1";
+      } else {
+        netIdBin += "0";
+      }
+    }
+    return netIdBin;
+  })
+  
+  let broadcastBinary = netIdBinary.slice();
+
+  let networkId = netIdBinary.map((b) => parseInt(b, 2)).join('.');
+  let sm = subnetMaskBinaryParts.map((b) => parseInt(b, 2)).join('.')
+
+  subnetMaskBinary = subnetMaskBinary.substring(0, subnetMaskBinary.length);
+
+  let pos = subnetMaskBinaryParts[3].lastIndexOf(1) + 1;
+  
+  broadcastBinary[3] = broadcastBinary[3].substring(0, pos).padEnd(8, '1');
+  
+  let broadcastId = broadcastBinary.map((b, i) => parseInt(b, 2)).join('.');
+  
+  let rangeStart = networkId.split('.');
+  let rangeStartX = rangeStart[0] + '.' + rangeStart[1] + '.' + rangeStart[2] + '.' + ( Number(rangeStart[rangeStart.length-1]) + 1);
+  
+  let gateway = rangeStartX;
+  
+  let rangeEnd = broadcastId.split('.');
+
+  let bits = [128, 64, 32, 16, 8, 4, 2, 1];
+  let smParts = sm.split('.');
+  //let addBits = 0;
+  
+  if (cidr < 24 && cidr > 16){
+  	rangeEnd[2] = 255 - Number(smParts[2]);
+  } else if (cidr < 17 && cidr > 8){
+  	rangeEnd[1] = Number(rangeEnd[1]) + (255 - Number(smParts[1]));
+    rangeEnd[2] = 255;
+  } else if (cidr < 9 && cidr > 1){
+  	// TODO
+  	//rangeEnd[0] = 255 - Number(smParts[0]);
+  } else if (cidr === 0){ 
+    rangeStartX = ipAddress;
+  	rangeEnd = ipAddress.split('.');
+    rangeEnd[3] = Number(rangeEnd[3]) + 1;
+  }
+  
+  let rangeEndX = rangeEnd[0] + '.' + rangeEnd[1] + '.' + rangeEnd[2] + '.' + ( Number(rangeEnd[rangeEnd.length-1]) - 1);
+  
+  // interval - number of bits to flip: raised 2 to the power of 8 - pos?
+  interval = Math.pow(2, 8 - pos);
+
+  return {
+  	interval,
+    networkId,
+    broadcastId,
+    gateway,
+    hostRange: rangeStartX + ':' + rangeEndX, 
+    sm,
+    subnetMaskBinary,
+    broadcastBinary,
+    ipAddressBinary,
+    netIdBinary,
+  }
+}
+
+let message = getNetworkInfo('192.16.28.104', 18);
+
+// Update header text
+document.getElementById('demo').innerHTML = JSON.stringify(message, null, 2)
+
+</script>
+
+</body>
+</html>
