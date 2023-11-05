@@ -55,13 +55,19 @@ let getNetworkInfo = (ipAddress, cidr) => {
   //let addBits = 0;
   
   if (cidr < 24 && cidr > 16){
-  	rangeEnd[2] = 255 - Number(smParts[2]);
+  	rangeEnd[2] =  Number(rangeEnd[2]) + (255 - Number(smParts[2]));
   } else if (cidr < 17 && cidr > 8){
   	rangeEnd[1] = Number(rangeEnd[1]) + (255 - Number(smParts[1]));
     rangeEnd[2] = 255;
   } else if (cidr < 9 && cidr > 1){
-  	// TODO
-  	//rangeEnd[0] = 255 - Number(smParts[0]);
+  	rangeEnd[0] = Number(rangeEnd[0]) + (bits[cidr - 1] - 1);
+  	rangeEnd[1] = 255;
+    rangeEnd[2] = 255;
+  } else if (cidr === 1){
+  	rangeStartX = '128.0.0.0';
+    rangeEnd[0] = 255;
+  	rangeEnd[1] = 255;
+    rangeEnd[2] = 255;
   } else if (cidr === 0){ 
     rangeStartX = ipAddress;
   	rangeEnd = ipAddress.split('.');
@@ -87,7 +93,7 @@ let getNetworkInfo = (ipAddress, cidr) => {
   }
 }
 
-let message = getNetworkInfo('192.16.28.104', 18);
+let message = getNetworkInfo('192.16.28.104', 1);
 
 // Update header text
 document.getElementById('demo').innerHTML = JSON.stringify(message, null, 2)
